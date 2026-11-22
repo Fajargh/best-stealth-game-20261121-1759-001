@@ -1,4 +1,4 @@
-// A tiny seeded random generator (mulberry32) so a screenshot seed always
+// A small seeded random generator (mulberry32), so a screenshot seed always
 // replays the same patrol wobble and the same gem sparkle.
 export function createRandom(seed) {
   let state = seed >>> 0;
@@ -11,7 +11,8 @@ export function createRandom(seed) {
   };
 }
 
-/** An integer in [min, max] from the seeded generator. */
+/** An integer in [min, max] drawn from the seeded generator. */
 export function randomInt(random, min, max) {
-  return min + Math.floor(random() * (max - min + 1));
+  const span = max - min + 1;
+  return min + Math.floor(random() * span);
 }

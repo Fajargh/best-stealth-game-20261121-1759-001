@@ -1,7 +1,7 @@
 // Small geometry helpers the guards and the player share: moving a circle
 // through the tile grid without clipping walls, and testing a line of sight.
-import { TILE, COLS, ROWS } from './config.js';
-import { blocksSight, tileAt } from './levels.js';
+import { TILE, COLS, ROWS } from "./config.js";
+import { blocksSight, tileAt } from "./levels.js";
 
 export function tileCenterX(col) {
   return col * TILE + TILE / 2;
@@ -16,9 +16,10 @@ export function tileOf(x, y) {
 }
 
 export function clampAngle(angle) {
-  while (angle > Math.PI) angle -= Math.PI * 2;
-  while (angle < -Math.PI) angle += Math.PI * 2;
-  return angle;
+  let a = angle;
+  while (a > Math.PI) a -= Math.PI * 2;
+  while (a < -Math.PI) a += Math.PI * 2;
+  return a;
 }
 
 export function angleDifference(from, to) {
@@ -50,18 +51,18 @@ export function slideMove(level, x, y, dx, dy, radius, walkable) {
 }
 
 function circleHitsSolid(level, x, y, radius, walkable) {
-  const minCol = Math.max(0, Math.floor((x - radius) / TILE));
-  const maxCol = Math.min(COLS - 1, Math.floor((x + radius) / TILE));
-  const minRow = Math.max(0, Math.floor((y - radius) / TILE));
-  const maxRow = Math.min(ROWS - 1, Math.floor((y + radius) / TILE));
-  for (let row = minRow; row <= maxRow; row += 1) {
-    for (let col = minCol; col <= maxCol; col += 1) {
+  const c0 = Math.max(0, Math.floor((x - radius) / TILE));
+  const c1 = Math.min(COLS - 1, Math.floor((x + radius) / TILE));
+  const r0 = Math.max(0, Math.floor((y - radius) / TILE));
+  const r1 = Math.min(ROWS - 1, Math.floor((y + radius) / TILE));
+  for (let row = r0; row <= r1; row += 1) {
+    for (let col = c0; col <= c1; col += 1) {
       if (walkable(tileAt(level, col, row))) continue;
-      const closestX = Math.max(col * TILE, Math.min(x, col * TILE + TILE));
-      const closestY = Math.max(row * TILE, Math.min(y, row * TILE + TILE));
-      const ddx = x - closestX;
-      const ddy = y - closestY;
-      if (ddx * ddx + ddy * ddy < radius * radius) return true;
+      const nearX = Math.max(col * TILE, Math.min(x, col * TILE + TILE));
+      const nearY = Math.max(row * TILE, Math.min(y, row * TILE + TILE));
+      const ox = x - nearX;
+      const oy = y - nearY;
+      if (ox * ox + oy * oy < radius * radius) return true;
     }
   }
   return false;
@@ -72,12 +73,12 @@ function circleHitsSolid(level, x, y, radius, walkable) {
  * Samples the segment finely enough that a crate edge cannot be skipped.
  */
 export function hasLineOfSight(level, x0, y0, x1, y1) {
-  const dist = distance(x0, y0, x1, y1);
-  const steps = Math.max(1, Math.ceil(dist / 6));
-  for (let i = 1; i < steps; i += 1) {
-    const t = i / steps;
-    const x = x0 + (x1 - x0) * t;
-    const y = y0 + (y1 - y0) * t;
+  const len = distance(x0, y0, x1, y1);
+  const n = Math.max(1, Math.ceil(len / 6));
+  for (let i = 1; i < n; i += 1) {
+    const f = i / n;
+    const x = x0 + (x1 - x0) * f;
+    const y = y0 + (y1 - y0) * f;
     const [col, row] = tileOf(x, y);
     if (blocksSight(tileAt(level, col, row))) return false;
   }
@@ -90,19 +91,20 @@ export function hasLineOfSight(level, x0, y0, x1, y1) {
  * wrap around cover instead of painting through walls.
  */
 export function rayDistance(level, x, y, angle, maxDist) {
-  const step = 6;
-  const dx = Math.cos(angle) * step;
-  const dy = Math.sin(angle) * step;
-  let travelled = 0;
+  const stride = 6;
+  const dx = Math.cos(angle) * stride;
+  const dy = Math.sin(angle) * stride;
+  let gone = 0;
   let cx = x;
   let cy = y;
-  while (travelled < maxDist) {
+  while (gone < maxDist) {
     cx += dx;
     cy += dy;
-    travelled += step;
+    gone += stride;
     const [col, row] = tileOf(cx, cy);
-    if (col < 0 || row < 0 || col >= COLS || row >= ROWS) return travelled;
-    if (blocksSight(tileAt(level, col, row))) return travelled;
+    const outside = col < 0 || row < 0 || col >= COLS || row >= ROWS;
+    if (outside) return gone;
+    if (blocksSight(tileAt(level, col, row))) return gone;
   }
   return maxDist;
 }

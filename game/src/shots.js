@@ -1,20 +1,20 @@
 // Screenshot scenes: each one plays the real rules forward from a fresh
 // level with a simple autopilot, so every frame is what a short game really
 // looks like — and the same seed always gives the same frame.
-import { STEP, TILE } from './config.js';
-import { findTiles, tileAt } from './levels.js';
-import { distance, tileCenterX, tileCenterY, tileOf } from './physics.js';
-import { STATE_CHASE } from './guards.js';
+import { STEP, TILE } from "./config.js";
+import { findTiles, tileAt } from "./levels.js";
+import { distance, tileCenterX, tileCenterY, tileOf } from "./physics.js";
+import { STATE_CHASE } from "./guards.js";
 import {
   SCREEN_PLAY, SCREEN_LEVEL_DONE, SCREEN_CAUGHT, SCREEN_WON,
   findPath, loadLevel, stepWorld,
-} from './world.js';
+} from "./world.js";
 
 const SAMPLE = STEP;
 
 /** The nearest bush tile to the player, within `maxDist` pixels, or null. */
 function nearestBush(world, maxDist) {
-  const bushes = findTiles(world.level, 'B');
+  const bushes = findTiles(world.level, "B");
   let best = null;
   let bestDist = maxDist;
   for (const [c, r] of bushes) {
@@ -33,28 +33,29 @@ function autopilotInput(world, mode, hiding) {
   const chaserNear = world.guards.some(
     (g) => g.state === STATE_CHASE && distance(g.x, g.y, player.x, player.y) < 180,
   );
-  if (mode === 'reckless') {
-    return { mx: 0, my: 0, running: true, click: null, retarget: 'exit' };
+  if (mode === "reckless") {
+    return { mx: 0, my: 0, running: true, click: null, retarget: "exit" };
   }
   if (world.meter > 45 && !hiding.value) {
     const bush = nearestBush(world, 280);
     if (bush) {
       hiding.value = true;
-      return { mx: 0, my: 0, running: false, click: { x: tileCenterX(bush[0]), y: tileCenterY(bush[1]) }, retarget: null };
+      const target = { x: tileCenterX(bush[0]), y: tileCenterY(bush[1]) };
+      return { mx: 0, my: 0, running: false, click: target, retarget: null };
     }
   }
   if (hiding.value) {
     if (world.meter < 12) hiding.value = false;
     return { mx: 0, my: 0, running: false, click: null, retarget: null };
   }
-  return { mx: 0, my: 0, running: chaserNear, click: null, retarget: 'next' };
+  return { mx: 0, my: 0, running: chaserNear, click: null, retarget: "next" };
 }
 
 function retarget(world, what) {
   const player = world.player;
   const [pc, pr] = tileOf(player.x, player.y);
-  if (what === 'exit') {
-    const [ec, er] = findTiles(world.level, 'E')[0];
+  if (what === "exit") {
+    const [ec, er] = findTiles(world.level, "E")[0];
     const path = findPath(world.level, pc, pr, ec, er);
     if (path && path.length > 0) {
       player.path = path;
@@ -94,9 +95,11 @@ function drive(world, seconds, mode, stopWhen) {
     // every step would restart the path and the player would never arrive.
     if (!world.player.path && !hiding.value) {
       if (input.retarget) retarget(world, input.retarget);
-      else if (mode === 'smart') retarget(world, 'next');
+      else if (mode === "smart") retarget(world, "next");
     }
-    stepWorld(world, SAMPLE, { mx: input.mx, my: input.my, running: input.running, click: input.click });
+    stepWorld(world, SAMPLE, {
+      mx: input.mx, my: input.my, running: input.running, click: input.click,
+    });
   }
 }
 
@@ -111,17 +114,17 @@ export function stageShot(name, world) {
   loadLevel(world, 0);
   world.state = SCREEN_PLAY;
   world.events.length = 0;
-  if (name === 'patrol') {
-    drive(world, 6, 'smart');
+  if (name === "patrol") {
+    drive(world, 6, "smart");
     return { screen: SCREEN_PLAY, best: 0 };
   }
-  if (name === 'alert') {
+  if (name === "alert") {
     // A reckless dash straight at the nearest guard's cone: walk into its
     // line of sight and stay there until the alarm trips, then run.
     loadLevel(world, 0);
     world.state = SCREEN_PLAY;
     world.events.length = 0;
-    drive(world, 3, 'smart');
+    drive(world, 3, "smart");
     let chased = false;
     for (let t = 0; t < 40 && world.state === SCREEN_PLAY; t += 0.25) {
       if (world.guards.some((g) => g.state === STATE_CHASE)) {
@@ -152,17 +155,18 @@ export function stageShot(name, world) {
         stepWorld(world, SAMPLE, { mx: 0, my: 0, running: false, click: null });
       }
     }
-    if (chased) drive(world, 0.9, 'reckless');
-    return { screen: world.state === SCREEN_PLAY ? SCREEN_PLAY : world.state, best: 0 };
+    if (chased) drive(world, 0.9, "reckless");
+    const shown = world.state === SCREEN_PLAY ? SCREEN_PLAY : world.state;
+    return { screen: shown, best: 0 };
   }
-  if (name === 'win') {
-    drive(world, 300, 'smart', (w) => w.state === SCREEN_LEVEL_DONE || w.state === SCREEN_WON);
+  if (name === "win") {
+    drive(world, 300, "smart", (w) => w.state === SCREEN_LEVEL_DONE || w.state === SCREEN_WON);
     if (world.state === SCREEN_LEVEL_DONE || world.state === SCREEN_WON) {
       return { screen: world.state, best: world.score };
     }
     return { screen: SCREEN_PLAY, best: world.score };
   }
   // cover
-  drive(world, 16, 'smart');
+  drive(world, 16, "smart");
   return { screen: SCREEN_PLAY, best: 0 };
 }

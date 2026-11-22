@@ -5,49 +5,49 @@
 // ?seed=N fixes the patrol wobble and gem sparkle. ?shot=cover|patrol|alert|win
 // (with &seed=N) stages that scene instead of running the loop, paints it
 // twice and sets window.__shotReady for a screenshot.
-import { BEST_KEY, STEP } from './config.js';
-import { createRandom } from './random.js';
+import { BEST_KEY, STEP } from "./config.js";
+import { createRandom } from "./random.js";
 import {
   createWorld, stepWorld, startLevel, advanceWorld,
   SCREEN_TITLE, SCREEN_PLAY, SCREEN_PAUSED, SCREEN_LEVEL_DONE,
   SCREEN_CAUGHT, SCREEN_WON,
-} from './world.js';
-import { ACTION_CONFIRM, ACTION_PAUSE, createInput } from './input.js';
-import { createAudio } from './audio.js';
-import { createRenderer } from './render.js';
-import { updateGuard } from './guards.js';
-import { stageShot } from './shots.js';
+} from "./world.js";
+import { ACTION_CONFIRM, ACTION_PAUSE, createInput } from "./input.js";
+import { createAudio } from "./audio.js";
+import { makeRenderer } from "./render.js";
+import { updateGuard } from "./guards.js";
+import { stageShot } from "./shots.js";
 
 /** The longest frame the loop catches up on; a longer stall is dropped. */
 const MAX_FRAME = 0.25;
 
-const params = new URLSearchParams(window.location.search);
-const shot = params.get('shot');
-const seedParam = Number.parseInt(params.get('seed') ?? '', 10);
-const seed = Number.isInteger(seedParam) ? seedParam : Math.floor(Math.random() * 4294967296);
+const query = new URLSearchParams(window.location.search);
+const shotName = query.get("shot");
+const seedText = Number.parseInt(query.get("seed") ?? "", 10);
+const seed = Number.isInteger(seedText) ? seedText : Math.floor(Math.random() * 4294967296);
 
-const canvas = document.getElementById('game');
-const status = document.getElementById('status');
-const world = createWorld(createRandom(seed));
-const renderer = createRenderer(canvas);
-const audio = createAudio();
-const input = createInput(canvas, (x, y) => renderer.screenToWorld(x, y));
+const board = document.getElementById("game");
+const live = document.getElementById("status");
+const game = createWorld(createRandom(seed));
+const painter = makeRenderer(board);
+const sound = createAudio();
+const keys = createInput(board, (x, y) => painter.screenToWorld(x, y));
 
 // Guard footsteps, panned by where the guard is relative to the player.
-world.onStep = (guard) => {
-  const pan = Math.max(-1, Math.min(1, (guard.x - world.player.x) / 360));
-  audio.footstep(pan);
+game.onStep = (guard) => {
+  const pan = Math.max(-1, Math.min(1, (guard.x - game.player.x) / 360));
+  sound.footstep(pan);
 };
 
-function readBest() {
+function loadBest() {
   try {
-    return Number.parseInt(window.localStorage.getItem(BEST_KEY) ?? '0', 10) || 0;
+    return Number.parseInt(window.localStorage.getItem(BEST_KEY) ?? "0", 10) || 0;
   } catch {
     return 0;
   }
 }
 
-function saveBest(value) {
+function storeBest(value) {
   try {
     window.localStorage.setItem(BEST_KEY, String(value));
   } catch {
@@ -55,136 +55,136 @@ function saveBest(value) {
   }
 }
 
-function runShot(name) {
-  const scene = stageShot(name, world);
-  let painted = 0;
-  function paint() {
-    renderer.draw(world, scene.screen, scene.best, performance.now() / 1000);
-    painted += 1;
-    if (painted < 2) requestAnimationFrame(paint);
+function stageAndPaint(name) {
+  const staged = stageShot(name, game);
+  let drawn = 0;
+  function drawOnce() {
+    painter.draw(game, staged.screen, staged.best, performance.now() / 1000);
+    drawn += 1;
+    if (drawn < 2) requestAnimationFrame(drawOnce);
     else window.__shotReady = true;
   }
-  requestAnimationFrame(paint);
+  requestAnimationFrame(drawOnce);
 }
 
-function runGame() {
-  let screen = SCREEN_TITLE;
-  let best = readBest();
-  let accumulator = 0;
-  let last = performance.now();
+function play() {
+  let view = SCREEN_TITLE;
+  let top = loadBest();
+  let bank = 0;
+  let prev = performance.now();
 
-  function announce(message) {
-    status.textContent = message;
+  function say(message) {
+    live.textContent = message;
   }
 
   // Sounds and speech for what just happened in the world.
-  function drainEvents() {
-    for (const event of world.events) {
-      if (event.type === 'gem') audio.gem();
-      else if (event.type === 'spotted') audio.spotted();
-      else if (event.type === 'alarm') audio.alarm();
-      else if (event.type === 'caught') audio.caught();
-      else if (event.type === 'levelDone') audio.levelDone();
-      else if (event.type === 'won') audio.won();
-      else if (event.type === 'start') audio.click();
+  function playEvents() {
+    for (const ev of game.events) {
+      if (ev.type === "gem") sound.gem();
+      else if (ev.type === "spotted") sound.spotted();
+      else if (ev.type === "alarm") sound.alarm();
+      else if (ev.type === "caught") sound.caught();
+      else if (ev.type === "levelDone") sound.levelDone();
+      else if (ev.type === "won") sound.won();
+      else if (ev.type === "start") sound.click();
     }
-    world.events.length = 0;
+    game.events.length = 0;
   }
 
-  function syncScreen() {
-    if (world.state !== screen) {
-      screen = world.state;
-      if (screen === SCREEN_CAUGHT) {
-        announce('Caught! Press Space to try again.');
-        if (world.score > best) {
-          best = world.score;
-          saveBest(best);
+  function followWorld() {
+    if (game.state !== view) {
+      view = game.state;
+      if (view === SCREEN_CAUGHT) {
+        say("Caught! Press Space to try again.");
+        if (game.score > top) {
+          top = game.score;
+          storeBest(top);
         }
-      } else if (screen === SCREEN_LEVEL_DONE) {
-        announce('Level clear! Press Space for the next level.');
-      } else if (screen === SCREEN_WON) {
-        announce('You won! The ember is yours.');
-        if (world.score > best) {
-          best = world.score;
-          saveBest(best);
+      } else if (view === SCREEN_LEVEL_DONE) {
+        say("Level clear! Press Space for the next level.");
+      } else if (view === SCREEN_WON) {
+        say("You won! The ember is yours.");
+        if (game.score > top) {
+          top = game.score;
+          storeBest(top);
         }
       }
     }
   }
 
-  function handleActions() {
-    const actions = input.takeActions();
-    if (actions & ACTION_CONFIRM) audio.unlock();
-    if (actions & ACTION_CONFIRM && screen === SCREEN_TITLE) {
-      startLevel(world);
-      screen = SCREEN_PLAY;
-      announce(`Playing. ${world.level.name}.`);
-    } else if (actions & ACTION_CONFIRM && screen === SCREEN_LEVEL_DONE) {
-      advanceWorld(world);
-      screen = SCREEN_PLAY;
-      announce(`Playing. ${world.level.name}.`);
-    } else if (actions & ACTION_CONFIRM && screen === SCREEN_CAUGHT) {
-      advanceWorld(world);
-      screen = SCREEN_PLAY;
-      announce('Try again.');
-    } else if (actions & ACTION_CONFIRM && screen === SCREEN_WON) {
-      world.score = 0;
-      world.gemsGot = 0;
-      world.time = 0;
-      world.levelIndex = 0;
-      startLevel(world);
-      screen = SCREEN_PLAY;
-      announce(`Playing. ${world.level.name}.`);
-    } else if (actions & ACTION_PAUSE && screen === SCREEN_PLAY) {
-      screen = SCREEN_PAUSED;
-      world.state = SCREEN_PAUSED;
-      announce('Paused.');
-    } else if (actions & (ACTION_PAUSE | ACTION_CONFIRM) && screen === SCREEN_PAUSED) {
-      screen = SCREEN_PLAY;
-      world.state = SCREEN_PLAY;
-      announce('Playing.');
+  function readActions() {
+    const pressed = keys.takeActions();
+    if (pressed & ACTION_CONFIRM) sound.unlock();
+    if (pressed & ACTION_CONFIRM && view === SCREEN_TITLE) {
+      startLevel(game);
+      view = SCREEN_PLAY;
+      say(`Playing. ${game.level.name}.`);
+    } else if (pressed & ACTION_CONFIRM && view === SCREEN_LEVEL_DONE) {
+      advanceWorld(game);
+      view = SCREEN_PLAY;
+      say(`Playing. ${game.level.name}.`);
+    } else if (pressed & ACTION_CONFIRM && view === SCREEN_CAUGHT) {
+      advanceWorld(game);
+      view = SCREEN_PLAY;
+      say("Try again.");
+    } else if (pressed & ACTION_CONFIRM && view === SCREEN_WON) {
+      game.score = 0;
+      game.gemsGot = 0;
+      game.time = 0;
+      game.levelIndex = 0;
+      startLevel(game);
+      view = SCREEN_PLAY;
+      say(`Playing. ${game.level.name}.`);
+    } else if (pressed & ACTION_PAUSE && view === SCREEN_PLAY) {
+      view = SCREEN_PAUSED;
+      game.state = SCREEN_PAUSED;
+      say("Paused.");
+    } else if (pressed & (ACTION_PAUSE | ACTION_CONFIRM) && view === SCREEN_PAUSED) {
+      view = SCREEN_PLAY;
+      game.state = SCREEN_PLAY;
+      say("Playing.");
     }
   }
 
-  function step() {
-    if (screen === SCREEN_TITLE) {
+  function tick() {
+    if (view === SCREEN_TITLE) {
       // The museum lives behind the title: guards walk their rounds.
-      for (const guard of world.guards) updateGuard(guard, STEP, world);
+      for (const guard of game.guards) updateGuard(guard, STEP, game);
       return;
     }
-    if (screen !== SCREEN_PLAY) return;
-    const dir = input.direction();
-    const click = input.takeClick();
-    stepWorld(world, STEP, { mx: dir.x, my: dir.y, running: input.running(), click });
-    drainEvents();
-    syncScreen();
+    if (view !== SCREEN_PLAY) return;
+    const vec = keys.direction();
+    const tap = keys.takeClick();
+    stepWorld(game, STEP, { mx: vec.x, my: vec.y, running: keys.running(), click: tap });
+    playEvents();
+    followWorld();
   }
 
-  function frame(now) {
-    requestAnimationFrame(frame);
-    accumulator += Math.min((now - last) / 1000, MAX_FRAME);
-    last = now;
-    handleActions();
-    while (accumulator >= STEP && (screen === SCREEN_TITLE || screen === SCREEN_PLAY)) {
-      step();
-      accumulator -= STEP;
+  function loop(now) {
+    requestAnimationFrame(loop);
+    bank += Math.min((now - prev) / 1000, MAX_FRAME);
+    prev = now;
+    readActions();
+    while (bank >= STEP && (view === SCREEN_TITLE || view === SCREEN_PLAY)) {
+      tick();
+      bank -= STEP;
     }
-    if (screen !== SCREEN_TITLE && screen !== SCREEN_PLAY) accumulator = 0;
-    renderer.draw(world, screen, best, now / 1000);
+    if (view !== SCREEN_TITLE && view !== SCREEN_PLAY) bank = 0;
+    painter.draw(game, view, top, now / 1000);
   }
 
   // Leaving the tab pauses a running game rather than letting guards close in unseen.
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && screen === SCREEN_PLAY) {
-      screen = SCREEN_PAUSED;
-      world.state = SCREEN_PAUSED;
-      announce('Paused.');
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && view === SCREEN_PLAY) {
+      view = SCREEN_PAUSED;
+      game.state = SCREEN_PAUSED;
+      say("Paused.");
     }
   });
 
-  announce('Emberlight Heist. Press Space or click to start.');
-  requestAnimationFrame(frame);
+  say("Emberlight Heist. Press Space or click to start.");
+  requestAnimationFrame(loop);
 }
 
-if (shot) runShot(shot);
-else runGame();
+if (shotName) stageAndPaint(shotName);
+else play();

@@ -4,9 +4,9 @@
 [![rank](https://make.fun/badge/best-stealth-game-20261121-1759/Fajargh/best-stealth-game-20261121-1759-001/rank.svg)](https://make.fun/bounty/best-stealth-game-20261121-1759/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-stealth-game-20261121-1759)
 [![reward](https://make.fun/badge/best-stealth-game-20261121-1759/Fajargh/best-stealth-game-20261121-1759-001/reward.svg)](https://make.fun/bounty/best-stealth-game-20261121-1759?utm_source=github&utm_medium=readme&utm_campaign=best-stealth-game-20261121-1759)
 
-**Emberlight Heist** — a top-down stealth game. Pip the firefly thief sneaks through the Ember Museum after dark: slip past the night watch, pocket the ember gems, and reach the green exit door unseen.
+**Emberlight Heist** — a top-down stealth game. Pip, a firefly thief, is inside the Ember Museum after dark: slip past the night watch, pocket the ember gems, and reach the green exit door without being seen.
 
-Guards patrol routes you can learn, with visible vision cones that bend around cover. Get spotted and the alarm meter fills — a glimpse makes them curious, a full meter sends them chasing. Hedges hide you, crates block sight, and running is fast but loud: nearby guards hear it and come to look. Three levels, four guard states (patrol / curious / search / chase), gems, score, timer, and a best score.
+The guards walk patrol routes you can learn, and their vision cones bend around cover. Get spotted and the alarm meter fills — a glimpse makes them curious, a full meter sends them chasing. Hedges hide you, crates block sight, and running is fast but loud, so nearby guards hear it and come to look. Three levels, four guard states (patrol, curious, search, chase), gems, a score, a timer, and a best score.
 
 ## Run it
 
@@ -16,7 +16,7 @@ node serve.ts
 
 Then open http://localhost:8080 — or serve `game/` with any static server and open `game/index.html`. The game plays offline in desktop Chrome with no network request.
 
-**Controls:** WASD / arrows to sneak, Shift to run (loud), click to walk somewhere, Space to start, P to pause.
+**Controls:** WASD or arrows to sneak, Shift to run (loud), click to walk somewhere, Space to start, P to pause.
 
 ## Layout
 

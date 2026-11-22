@@ -1,4 +1,4 @@
-// The three levels of Emberlight Heist. Each map is 24 x 15 tiles:
+// The three levels of Emberlight Heist. Every map is 24 x 15 tiles:
 //   # wall (blocks movement and sight)
 //   . floor
 //   C crate (cover: blocks movement and sight)
@@ -6,12 +6,12 @@
 //   * ember gem (optional pickup, +100)
 //   E exit door (reach it to finish the level)
 //   P player start
-// Guards patrol between waypoint tiles; every segment is a straight, clear
-// corridor so a guard never has to pathfind around a corner.
+// Guards patrol between waypoint tiles; each segment is a straight, clear
+// corridor, so a guard never has to pathfind around a corner.
 export const LEVELS = [
   {
-    name: 'The Moonlit Gallery',
-    intro: 'Slip past the night watch. Grab embers if you dare — then reach the green door.',
+    name: "The Moonlit Gallery",
+    intro: "Slip past the night watch. Grab embers if you dare — then reach the green door.",
     parSeconds: 75,
     lamps: [[6, 4], [17, 4], [6, 11], [17, 11]],
     guards: [
@@ -19,26 +19,26 @@ export const LEVELS = [
       { waypoints: [[20, 5], [20, 11]], pause: 1.6 },
     ],
     map: [
-      '########################',
-      '#P....B......C.....*..E#',
-      '#......................#',
-      '#..C.....####.....B....#',
-      '#......................#',
-      '#....B........C....*...#',
-      '#..........#####.......#',
-      '#..C.................B.#',
-      '#.......C.......B......#',
-      '#......................#',
-      '#..B.....####....C.....#',
-      '#..................*...#',
-      '#....C......B..........#',
-      '#......................#',
-      '########################',
+      "########################",
+      "#P....B......C.....*..E#",
+      "#......................#",
+      "#..C.....####.....B....#",
+      "#......................#",
+      "#....B........C....*...#",
+      "#..........#####.......#",
+      "#..C.................B.#",
+      "#.......C.......B......#",
+      "#......................#",
+      "#..B.....####....C.....#",
+      "#..................*...#",
+      "#....C......B..........#",
+      "#......................#",
+      "########################",
     ],
   },
   {
-    name: 'The Crate Yard',
-    intro: 'Crates everywhere, three guards, and no patience. Bushes hide you — if you stay still.',
+    name: "The Crate Yard",
+    intro: "Crates everywhere, three guards, and no patience. Bushes hide you — if you stay still.",
     parSeconds: 90,
     lamps: [[5, 3], [12, 7], [19, 3], [5, 12], [19, 12]],
     guards: [
@@ -47,26 +47,26 @@ export const LEVELS = [
       { waypoints: [[5, 9], [5, 12]], pause: 1.2 },
     ],
     map: [
-      '########################',
-      '#P..B...C......B...*..E#',
-      '#.....####.........###.#',
-      '#..C........B.....#....#',
-      '#....####......C..#..B.#',
-      '#..B......C........#...#',
-      '#.....######...B...#.*.#',
-      '#..C.......#...........#',
-      '#.....B....#....C....B.#',
-      '#..........#......####.#',
-      '#..C....B...#....#.....#',
-      '#......####....C.#..C..#',
-      '#..B........B....#.....#',
-      '#....C......*.....B..*.#',
-      '########################',
+      "########################",
+      "#P..B...C......B...*..E#",
+      "#.....####.........###.#",
+      "#..C........B.....#....#",
+      "#....####......C..#..B.#",
+      "#..B......C........#...#",
+      "#.....######...B...#.*.#",
+      "#..C.......#...........#",
+      "#.....B....#....C....B.#",
+      "#..........#......####.#",
+      "#..C....B...#....#.....#",
+      "#......####....C.#..C..#",
+      "#..B........B....#.....#",
+      "#....C......*.....B..*.#",
+      "########################",
     ],
   },
   {
-    name: 'The Ember Vault',
-    intro: 'Four guards watch the vault. The ember gem is close — the door is closer. Choose.',
+    name: "The Ember Vault",
+    intro: "Four guards watch the vault. The ember gem is close — the door is closer. Choose.",
     parSeconds: 105,
     lamps: [[4, 2], [12, 6], [20, 2], [4, 12], [20, 12]],
     guards: [
@@ -76,52 +76,52 @@ export const LEVELS = [
       { waypoints: [[19, 13], [22, 13]], pause: 1.0 },
     ],
     map: [
-      '########################',
-      '#P...C....B.....C...*E.#',
-      '#..#####....####...##..#',
-      '#......#...#....#..#...#',
-      '#..B...#...#..C.#..#.B.#',
-      '#......#...#....#..#...#',
-      '#..C...#.B.#....#..#...#',
-      '#......#...#....#..#...#',
-      '#..B...#...#..C.#..#...#',
-      '#..#####...#....#..#...#',
-      '#......B...#....#..#.C.#',
-      '#..C....#####..###..#..#',
-      '#......*....B......#.*.#',
-      '#....B.....C.....B.....#',
-      '########################',
+      "########################",
+      "#P...C....B.....C...*E.#",
+      "#..#####....####...##..#",
+      "#......#...#....#..#...#",
+      "#..B...#...#..C.#..#.B.#",
+      "#......#...#....#..#...#",
+      "#..C...#.B.#....#..#...#",
+      "#......#...#....#..#...#",
+      "#..B...#...#..C.#..#...#",
+      "#..#####...#....#..#...#",
+      "#......B...#....#..#.C.#",
+      "#..C....#####..###..#..#",
+      "#......*....B......#.*.#",
+      "#....B.....C.....B.....#",
+      "########################",
     ],
   },
 ];
 
 // Tile helpers shared by the world, the guards and the renderer.
 export function tileAt(level, col, row) {
-  if (col < 0 || row < 0 || col >= 24 || row >= 15) return '#';
+  if (col < 0 || row < 0 || col >= 24 || row >= 15) return "#";
   return level.map[row][col];
 }
 
 export function isWallTile(ch) {
-  return ch === '#';
+  return ch === "#";
 }
 
 export function isCoverTile(ch) {
-  return ch === '#' || ch === 'C';
+  return ch === "#" || ch === "C";
 }
 
 /** Blocks a guard's line of sight: walls, crates and tall hedges. */
 export function blocksSight(ch) {
-  return ch === '#' || ch === 'C' || ch === 'B';
+  return ch === "#" || ch === "C" || ch === "B";
 }
 
 /** A tile the player can walk on (bushes included — that is where you hide). */
 export function walkableForPlayer(ch) {
-  return ch !== '#' && ch !== 'C';
+  return ch !== "#" && ch !== "C";
 }
 
 /** A tile a guard can walk on (hedges are solid to guards). */
 export function walkableForGuard(ch) {
-  return ch !== '#' && ch !== 'C' && ch !== 'B';
+  return ch !== "#" && ch !== "C" && ch !== "B";
 }
 
 /** Find every tile holding `ch` in the map, as [col, row] pairs. */

@@ -4,30 +4,34 @@
 import {
   TILE, GUARD_PATROL, GUARD_CURIOUS, GUARD_CHASE, GUARD_RANGE, GUARD_FOV,
   GUARD_RADIUS, SPOT_CLOSE_REVEAL, SEARCH_LOOK_TIME, CHASE_GIVE_UP,
-} from './config.js';
-import { walkableForGuard } from './levels.js';
+} from "./config.js";
+import { walkableForGuard } from "./levels.js";
 import {
   angleDifference, clampAngle, distance, hasLineOfSight, slideMove,
   tileCenterX, tileCenterY,
-} from './physics.js';
+} from "./physics.js";
 
-export const STATE_PATROL = 'patrol';
-export const STATE_CURIOUS = 'curious';
-export const STATE_SEARCH = 'search';
-export const STATE_CHASE = 'chase';
+export const STATE_PATROL = "patrol";
+export const STATE_CURIOUS = "curious";
+export const STATE_SEARCH = "search";
+export const STATE_CHASE = "chase";
 
 /** A guard standing at its first waypoint, facing along its patrol. */
-export function createGuard(def, random) {
-  const [col, row] = def.waypoints[0];
-  const next = def.waypoints[1] ?? def.waypoints[0];
+export function createGuard(route, random) {
+  const [c, r] = route.waypoints[0];
+  const after = route.waypoints[1] ?? route.waypoints[0];
+  const facing = Math.atan2(
+    tileCenterY(after[1]) - tileCenterY(r),
+    tileCenterX(after[0]) - tileCenterX(c),
+  );
   return {
-    def,
-    x: tileCenterX(col),
-    y: tileCenterY(row),
-    angle: Math.atan2(tileCenterY(next[1]) - tileCenterY(row), tileCenterX(next[0]) - tileCenterX(col)),
+    def: route,
+    x: tileCenterX(c),
+    y: tileCenterY(r),
+    angle: facing,
     state: STATE_PATROL,
     waypointIndex: 1,
-    pause: def.pause,
+    pause: route.pause,
     pauseLeft: 0,
     searchLeft: 0,
     chaseLeft: 0,
@@ -48,13 +52,13 @@ export function createGuard(def, random) {
  * enough to part the leaves.
  */
 export function guardSeesPlayer(guard, level, playerX, playerY, playerInBush) {
-  const dist = distance(guard.x, guard.y, playerX, playerY);
-  if (dist > GUARD_RANGE) return 0;
-  if (playerInBush && dist > SPOT_CLOSE_REVEAL) return 0;
+  const gap = distance(guard.x, guard.y, playerX, playerY);
+  if (gap > GUARD_RANGE) return 0;
+  if (playerInBush && gap > SPOT_CLOSE_REVEAL) return 0;
   const toPlayer = Math.atan2(playerY - guard.y, playerX - guard.x);
   if (Math.abs(angleDifference(guard.angle, toPlayer)) > GUARD_FOV / 2) return 0;
   if (!hasLineOfSight(level, guard.x, guard.y, playerX, playerY)) return 0;
-  return 1 - dist / GUARD_RANGE;
+  return 1 - gap / GUARD_RANGE;
 }
 
 /** Send a guard to look at a spot (a noise, or a glimpse of the player). */
@@ -78,62 +82,66 @@ export function sendToChase(guard, x, y) {
 /** Drop a guard back to its patrol route, from the nearest waypoint. */
 export function sendToPatrol(guard, waypoints) {
   guard.state = STATE_PATROL;
-  let best = 0;
-  let bestDist = Infinity;
+  let near = 0;
+  let nearDist = Infinity;
   for (let i = 0; i < waypoints.length; i += 1) {
-    const d = distance(guard.x, guard.y, tileCenterX(waypoints[i][0]), tileCenterY(waypoints[i][1]));
-    if (d < bestDist) {
-      bestDist = d;
-      best = i;
+    const gap = distance(
+      guard.x, guard.y,
+      tileCenterX(waypoints[i][0]), tileCenterY(waypoints[i][1]),
+    );
+    if (gap < nearDist) {
+      nearDist = gap;
+      near = i;
     }
   }
-  guard.waypointIndex = (best + 1) % waypoints.length;
+  guard.waypointIndex = (near + 1) % waypoints.length;
   guard.pauseLeft = 0;
 }
 
 /**
  * Advance one guard a step. `world` carries the level, the player, the
  * shared random source and an `onStep` callback for footstep sounds.
- * Returns 'caught' when this guard reaches the player while chasing.
+ * Returns "caught" when this guard reaches the player while chasing.
  */
 export function updateGuard(guard, dt, world) {
-  const def = guard.def;
+  const route = guard.def;
   const level = world.level;
-  let speed = 0;
-  let targetX = guard.x;
-  let targetY = guard.y;
+  let pace = 0;
+  let destX = guard.x;
+  let destY = guard.y;
 
   if (guard.state === STATE_PATROL) {
-    const wp = def.waypoints[guard.waypointIndex];
-    targetX = tileCenterX(wp[0]);
-    targetY = tileCenterY(wp[1]);
+    const mark = route.waypoints[guard.waypointIndex];
+    destX = tileCenterX(mark[0]);
+    destY = tileCenterY(mark[1]);
     if (guard.pauseLeft > 0) {
       guard.pauseLeft -= dt;
       guard.angle += guard.scanDir * dt * 0.9;
-      if (guard.angle > Math.PI * 0.75 || guard.angle < -Math.PI * 0.75) guard.scanDir *= -1;
-    } else if (distance(guard.x, guard.y, targetX, targetY) < 6) {
-      guard.waypointIndex = (guard.waypointIndex + 1) % def.waypoints.length;
+      const tooFar = guard.angle > Math.PI * 0.75 || guard.angle < -Math.PI * 0.75;
+      if (tooFar) guard.scanDir *= -1;
+    } else if (distance(guard.x, guard.y, destX, destY) < 6) {
+      guard.waypointIndex = (guard.waypointIndex + 1) % route.waypoints.length;
       guard.pauseLeft = guard.pause;
       guard.scanDir = world.random() > 0.5 ? 1 : -1;
     } else {
-      speed = GUARD_PATROL;
+      pace = GUARD_PATROL;
     }
   } else if (guard.state === STATE_CURIOUS) {
-    targetX = guard.investigateX;
-    targetY = guard.investigateY;
-    if (distance(guard.x, guard.y, targetX, targetY) < 10) {
+    destX = guard.investigateX;
+    destY = guard.investigateY;
+    if (distance(guard.x, guard.y, destX, destY) < 10) {
       guard.state = STATE_SEARCH;
       guard.searchLeft = SEARCH_LOOK_TIME;
     } else {
-      speed = GUARD_CURIOUS;
+      pace = GUARD_CURIOUS;
     }
   } else if (guard.state === STATE_SEARCH) {
     guard.searchLeft -= dt;
     guard.angle += dt * 1.6;
-    if (guard.searchLeft <= 0) sendToPatrol(guard, def.waypoints);
+    if (guard.searchLeft <= 0) sendToPatrol(guard, route.waypoints);
   } else if (guard.state === STATE_CHASE) {
-    targetX = guard.lastSeenX;
-    targetY = guard.lastSeenY;
+    destX = guard.lastSeenX;
+    destY = guard.lastSeenY;
     guard.chaseLeft -= dt;
     if (guard.chaseLeft <= 0) {
       guard.state = STATE_SEARCH;
@@ -141,32 +149,32 @@ export function updateGuard(guard, dt, world) {
       guard.investigateX = guard.lastSeenX;
       guard.investigateY = guard.lastSeenY;
     } else {
-      speed = GUARD_CHASE;
+      pace = GUARD_CHASE;
     }
   }
 
-  if (speed > 0) {
-    const d = distance(guard.x, guard.y, targetX, targetY);
-    const step = Math.min(speed * dt, d);
-    const dx = ((targetX - guard.x) / (d || 1)) * step;
-    const dy = ((targetY - guard.y) / (d || 1)) * step;
-    const [nx, ny] = slideMove(level, guard.x, guard.y, dx, dy, GUARD_RADIUS, walkableForGuard);
-    guard.angle = clampAngle(Math.atan2(ny - guard.y, nx - guard.x) || guard.angle);
-    guard.x = nx;
-    guard.y = ny;
+  if (pace > 0) {
+    const gap = distance(guard.x, guard.y, destX, destY);
+    const stride = Math.min(pace * dt, gap);
+    const mx = ((destX - guard.x) / (gap || 1)) * stride;
+    const my = ((destY - guard.y) / (gap || 1)) * stride;
+    const [px, py] = slideMove(level, guard.x, guard.y, mx, my, GUARD_RADIUS, walkableForGuard);
+    const moved = Math.atan2(py - guard.y, px - guard.x) || guard.angle;
+    guard.angle = clampAngle(moved);
+    guard.x = px;
+    guard.y = py;
     // Footsteps: the sound that tells you where a guard is.
     guard.stepT -= dt;
     if (guard.stepT <= 0) {
       guard.stepT = 0.42;
-      if (distance(guard.x, guard.y, world.player.x, world.player.y) < 340 && world.onStep) {
-        world.onStep(guard);
-      }
+      const close = distance(guard.x, guard.y, world.player.x, world.player.y) < 340;
+      if (close && world.onStep) world.onStep(guard);
     }
   }
 
-  if (guard.state === STATE_CHASE && distance(guard.x, guard.y, world.player.x, world.player.y) < 26) {
-    return 'caught';
-  }
+  const caught = guard.state === STATE_CHASE
+    && distance(guard.x, guard.y, world.player.x, world.player.y) < 26;
+  if (caught) return "caught";
   return null;
 }
 

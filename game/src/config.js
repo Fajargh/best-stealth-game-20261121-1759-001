@@ -1,5 +1,5 @@
-// Tuning and look for Emberlight Heist: one place for every number the other
-// files share, so a balance change never means hunting through the game.
+// Tuning and look for Emberlight Heist: a single home for every number the
+// other files share, so one balance tweak never means hunting through the game.
 export const TILE = 40;
 export const COLS = 24;
 export const ROWS = 15;
@@ -44,35 +44,35 @@ export const TIME_BONUS_PER_SECOND = 4;
 export const TIME_BONUS_CAP = 240;
 
 export const STEP = 1 / 60;
-export const BEST_KEY = 'emberlight-heist-best';
+export const BEST_KEY = "emberlight-heist-best";
 
 // Colours, kept in one place so the night palette stays consistent.
 export const COLORS = {
-  floorA: '#1b2436',
-  floorB: '#182031',
-  floorEdge: '#232f47',
-  wall: '#3a4663',
-  wallTop: '#4d5c82',
-  crate: '#7a5a34',
-  crateEdge: '#a97e47',
-  bush: '#1f5c33',
-  bushLeaf: '#2e8b4d',
-  bushDark: '#143d22',
-  exit: '#39d98a',
-  exitGlow: '#1d7a4e',
-  gem: '#ffd34d',
-  player: '#7ef3ff',
-  playerDark: '#1fb6d6',
-  guard: '#ff6b5e',
-  guardDark: '#c93a30',
-  cone: 'rgba(255, 214, 90, 0.20)',
-  coneEdge: 'rgba(255, 214, 90, 0.45)',
-  coneAlert: 'rgba(255, 80, 60, 0.22)',
-  lampGlow: 'rgba(255, 196, 90, 0.10)',
-  hudBack: 'rgba(8, 12, 24, 0.82)',
-  text: '#e8eefc',
-  textDim: '#9fb0d0',
-  danger: '#ff5a4e',
-  warn: '#ffc93d',
-  ok: '#39d98a',
+  floorA: "#1b2436",
+  floorB: "#182031",
+  floorEdge: "#232f47",
+  wall: "#3a4663",
+  wallTop: "#4d5c82",
+  crate: "#7a5a34",
+  crateEdge: "#a97e47",
+  bush: "#1f5c33",
+  bushLeaf: "#2e8b4d",
+  bushDark: "#143d22",
+  exit: "#39d98a",
+  exitGlow: "#1d7a4e",
+  gem: "#ffd34d",
+  player: "#7ef3ff",
+  playerDark: "#1fb6d6",
+  guard: "#ff6b5e",
+  guardDark: "#c93a30",
+  cone: "rgba(255, 214, 90, 0.20)",
+  coneEdge: "rgba(255, 214, 90, 0.45)",
+  coneAlert: "rgba(255, 80, 60, 0.22)",
+  lampGlow: "rgba(255, 196, 90, 0.10)",
+  hudBack: "rgba(8, 12, 24, 0.82)",
+  text: "#e8eefc",
+  textDim: "#9fb0d0",
+  danger: "#ff5a4e",
+  warn: "#ffc93d",
+  ok: "#39d98a",
 };
